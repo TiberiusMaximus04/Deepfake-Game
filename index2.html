@@ -1,0 +1,213 @@
+-<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Deepfake Quiz</title>
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+    const SUPABASE_URL = 'https://zqcywlptcjgxgwergiqm.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxY3l3bHB0Y2pneGd3ZXJnaXFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NzE4NTksImV4cCI6MjA2MDE0Nzg1OX0.awVn7Sg2IuYDHcG5q0_mhj5poY-W3R3NWGr2uQbM24s'
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+    let currentUser = null
+    let scores = 0
+    let currentQuestion = 0
+    let correctStreak = 0
+
+    const fullQuizData = [
+      { file: 'a1.png', isFake: true, explanation: 'The can logo looks weird, it looks like redbull, but isn\'t.' },
+      { file: 'a2.png', isFake: true, explanation: 'The lightsaber lights change color midway through.' },
+      { file: 'a3.png', isFake: true, explanation: 'They all look identical and the one on the bototm right looks weird.' },
+      { file: 'a4.png', isFake: true, explanation: 'There is a slice of the apple already cut when the apple is whole.' },
+      { file: 'a5.png', isFake: true, explanation: 'The sheeps look strange.' },
+      { file: 'a6.png', isFake: true, explanation: 'The cards looks strange in the hands and on the table.' },
+      { file: 'a7.png', isFake: true, explanation: 'Subjects look far too symmetrical and the lighting is far too even diffused.' },
+      { file: 'a8.png', isFake: true, explanation: 'Helmet has odd lighting inconsistencies and the equipment looks too generic.' },
+      { file: 'a9.png', isFake: true, explanation: 'Fur blends at contact points and the photo is far too high quality for uncontrollable subjects.' },
+      { file: 'a10.png', isFake: true, explanation: 'The fur looks far too even and clean and the background is very uniform.' },
+      { file: 'a11.png', isFake: true, explanation: 'Frozen in motion with no motion blur and missing an eye and an arm.' },
+      { file: 'a12.png', isFake: true, explanation: 'Fist of man at the bottom is warped and the logos are inconsistent.' },
+      { file: 'a13.png', isFake: true, explanation: 'Plane frozen in motion with no blur and engines are messed up on far end.' },
+      { file: 'a14.png', isFake: true, explanation: 'Fur looks far too clean and uniform and the eyes lack life.' },
+      { file: 'a15.png', isFake: true, explanation: 'There is warping on the fork and it is messed up near her mouth.' },
+      { file: 'a16.png', isFake: true, explanation: 'The rifle lacks detail and a hunter would almost never be able to get that close.' },
+      { file: 'a17.png', isFake: true, explanation: 'The dogs are overly symmetric and they have no motion blur despite being mid air.' },
+      { file: 'a18.png', isFake: true, explanation: 'The mountain lighting is far too uniform and looks far too perfect with no rough textures     .' },
+      { file: 'a19.png', isFake: true, explanation: 'Frozen in motion with no blur and the lighting looks too artificial.' },
+      { file: 'a20.png', isFake: true, explanation: 'The splashes look too uniform and the skin of the whale looks far too clean.' },
+      { file: 'real1.jpg', isFake: false, explanation: 'The fur looks displaced by motion and there are no clear signs of distortions.' },
+      { file: 'real2.jpg', isFake: false, explanation: 'Skin has pores and the lighting looks natural and little uniformity.' },
+      { file: 'real3.jpg', isFake: false, explanation: 'Highly detailed with rust around porthole and lighting does not look unnatural.' },
+      { file: 'real4.jpg', isFake: false, explanation: 'Hands have natural wrinkles and the lighting is consistent and the shadows look proper.' },
+      { file: 'real5.jpg', isFake: false, explanation: 'Shadows cast by rocks look proportionate and the depth of the canyon is visible.' },
+      { file: 'real6.jpg', isFake: false, explanation: 'Smooth flow from a long exposure and the leaves and rocks are not symmetrical.' },
+      { file: 'real7.jpg', isFake: false, explanation: 'Leaves and petals of flowers do not look uniform and the subject does not have uniform lighting.' },
+      { file: 'real8.jpg', isFake: false, explanation: 'The texture on the stone looks old and worn, the lighting is uneven due to the bulbs.' },
+      { file: 'real9.jpg', isFake: false, explanation: 'Lighting is natural and uneven across the picture, the shadows cast from bowl is consistent.' },
+      { file: 'real10.jpg', isFake: false, explanation: 'The lighting color is correct with the bulbs and the wall has details and wear and tear.' },
+      { file: 'real11.jpg', isFake: false, explanation: 'The lighting is inconsistent due to some lights on and off and the entire photo is in focus .' },
+      { file: 'real12.jpg', isFake: false, explanation: 'The subjects are both in focus with natural lighting and there are no deformities.' },
+      { file: 'real13.jpg', isFake: false, explanation: 'There is motion in the plants from the wind and the lighting is consistently coming from same location.' },
+      { file: 'real14.jpeg', isFake: false, explanation: 'Ice cream looks melty and glistening from the liquid, the table and ice cream have textures.' },
+      { file: 'real15.jpg', isFake: false, explanation: 'There are no apparent deformaties in the subject and the fur is complex with visisble dirt.' },
+      { file: 'real16.jpg', isFake: false, explanation: 'Lighting is consistent from the window and shadows from the arm, the coffee also has a glare that matches lighting.' },
+      { file: 'real17.jpg', isFake: false, explanation: 'Subjects are not all in similar positions and the texture of clothing are all different as well.' },
+      { file: 'real18.jpg', isFake: false, explanation: 'No clear deformaties on subject or flower and the wings are not uniform showing real life.' },
+      { file: 'real19.jpg', isFake: false, explanation: 'Lighting is natural and not uniform across the subject.' },
+      { file: 'real20.jpg', isFake: false, explanation: 'Lighting is natural and the shows all show the light coming from same place.' }
+    ]
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[array[i], array[j]] = [array[j], array[i]]
+      }
+      return array
+    }
+
+    const quizData = shuffle(fullQuizData).slice(0, 10)
+
+    async function loginUser() {
+      const email = document.getElementById('login-email').value
+      const password = document.getElementById('login-password').value
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+      })
+      if (error) return alert('Login failed: ' + error.message)
+      currentUser = data.user
+      document.getElementById('login').style.display = 'none'
+      document.getElementById('quiz').style.display = 'block'
+      loadQuestion()
+    }
+
+    async function signUpUser() {
+      const email = document.getElementById('signup-email').value
+      const password = document.getElementById('signup-password').value
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password
+      })
+      if (error) {
+        if (error.message.includes('Password should be at least')) {
+          alert('Password must be at least 6 characters.')
+        } else {
+          alert('Signup failed: ' + error.message)
+        }
+        return
+      }
+      alert('Account created! Please log in.')
+      document.getElementById('signup').style.display = 'none'
+      document.getElementById('login').style.display = 'block'
+    }
+
+    function showSignup() {
+      document.getElementById('login').style.display = 'none'
+      document.getElementById('signup').style.display = 'block'
+    }
+
+    function loadQuestion() {
+  if (currentQuestion >= quizData.length) return endQuiz()
+
+  const q = quizData[currentQuestion]
+  const bucket = q.isFake ? 'ai-images' : 'real-images'
+  const url = supabase.storage.from(bucket).getPublicUrl(q.file).data.publicUrl
+
+  console.log('Image URL:', url)
+  document.getElementById('image').src = url
+  document.getElementById('explanation').innerText = ''
+  document.getElementById('feedback').innerText = ''
+  document.getElementById('nextBtn').style.display = 'none'
+}
+
+    function submitAnswer(isUserSayingFake) {
+  const q = quizData[currentQuestion]
+  const correct = isUserSayingFake === q.isFake
+  const feedback = document.getElementById('feedback')
+  const explanation = document.getElementById('explanation')
+
+  if (correct) {
+    correctStreak++
+    const multiplier = 1 + (correctStreak * 0.1)
+    const addedScore = Math.floor(100 * multiplier)
+    scores += addedScore
+    if (q.isFake) {
+      feedback.innerText = `✅ Correct! This was an AI image. +${addedScore} points with a ${multiplier.toFixed(1)}x multiplier (hot streak: ${correctStreak})
+Explanation: ${q.explanation}`
+    } else {
+      feedback.innerText = `✅ You got it right! +${addedScore} points with a ${multiplier.toFixed(1)}x multiplier (hot streak: ${correctStreak})`
+    }
+  } else {
+    correctStreak = 0
+    feedback.innerText = '❌ Incorrect. Hot streak reset.'
+    explanation.innerText = q.explanation
+  }
+
+  document.getElementById('nextBtn').style.display = 'inline-block'
+    }
+
+    async function endQuiz() {
+      document.getElementById('quiz').innerHTML = `<h2>Quiz complete! Final score: ${scores}</h2>`
+      if (currentUser) {
+        await supabase.from('scores').insert({ user_id: currentUser.id, score: scores })
+        const { data, error } = await supabase.from('scores').select('user_id, score').eq('user_id', currentUser.id).single()
+        console.log(data)
+        if(scores > data.score){
+          await supabase.from('scores').delete().eq('user_id',currentUser.id)
+          await supabase.from('scores').insert({ user_id: currentUser.id, score: scores })
+        }
+        loadLeaderboard()
+      }
+    }
+
+    async function loadLeaderboard() {
+      const { data, error } = await supabase.from('scores').select('user_id, score').order('score', { ascending: false }).limit(10)
+      if (data) {
+        const board = document.createElement('div')
+        board.innerHTML = '<h3>Leaderboard</h3>' + data.map((row, i) => `<p>#${i+1}: ${row.user_id} - ${row.score}</p>`).join('')
+        document.getElementById('quiz').appendChild(board)
+      }
+    }
+
+    window.loginUser = loginUser
+    window.signUpUser = signUpUser
+    window.submitAnswer = submitAnswer;
+    window.nextQuestion = function() { currentQuestion++; loadQuestion(); };
+    window.showSignup = showSignup
+  </script>
+</head>
+<body>
+  <h1>Deepfake Quiz Game</h1>
+  <div id="login">
+    <h2>Login</h2>
+    <input type="email" id="login-email" placeholder="Email"><br>
+    <input type="password" id="login-password" placeholder="Password"><br>
+    <button onclick="loginUser()">Log In</button>
+    <button onclick="showSignup()">Sign Up</button>
+  </div>
+
+  <div id="signup" style="display:none;">
+    <h2>Sign Up</h2>
+    <input type="email" id="signup-email" placeholder="Email"><br>
+    <input type="password" id="signup-password" placeholder="Password"><br>
+    <button onclick="signUpUser()">Create Account</button>
+  </div>
+
+  <div id="quiz" style="display:none;">
+    <p id="feedback" style="font-weight:bold;"></p>
+    <button id="nextBtn" style="display:none; margin: 10px; padding: 10px 20px; font-size: 1.2em;" onclick="nextQuestion()">Next</button>
+    <p id="feedback" style="font-weight:bold;"></p>
+    <h2>Is this AI or real?</h2>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 40px;">
+      <img id="image" src="" width="700">
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <button onclick="submitAnswer(true)" style="font-size: 1.5em; padding: 15px 30px;">AI</button>
+        <button onclick="submitAnswer(false)" style="font-size: 1.5em; padding: 15px 30px;">Real</button>
+      </div>
+    </div><br>
+    
+    <p id="explanation"></p>
+  </div>
+</body>
+</html>
